@@ -33,7 +33,7 @@ struct AstralProtocolPrivate;
 
 class AstralProtocol : public Protocol
 {
-	Q_OBJECT
+	//Q_OBJECT
 public:
 	AstralProtocol(ConnectionManagerPtr manager, QMetaObject *meta);
 	virtual ~AstralProtocol();
@@ -42,6 +42,7 @@ public:
 	virtual AccountCreationWizard *accountCreationWizard();
 	ConnectionManagerPtr connectionManager();
 	AccountManagerPtr accountManager();
+	const QMetaObject *metaObject() const;
 private:
 	virtual void loadAccounts();
 	QScopedPointer<AstralProtocolPrivate> p;

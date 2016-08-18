@@ -54,6 +54,9 @@ public:
 	virtual ChatUnit *getUnit(const QString &unitId, bool create);
 	AstralRoster *roster();
 	AstralSessionManager *sessionManager();
+	virtual void doConnectToServer() override {}
+	virtual void doDisconnectFromServer() override {}
+	virtual void doStatusChange(const Status &status) override {}
 private slots:
 	void onConnect(Tp::PendingOperation *op);
 	void onConnectError(Tp::PendingOperation *op);

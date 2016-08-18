@@ -43,6 +43,7 @@ struct AstralAccountPrivate
 
 AstralAccount::AstralAccount(AstralProtocol *protocol, const QString &id) : qutim_sdk_0_3::Account(id, protocol), p(new AstralAccountPrivate)
 {
+	qDebug() << Q_FUNC_INFO << id;
 //	p->protocol = protocol;
 ////	p->roster = new AstralRoster(this, 0);
 //	ConnectionManager *connMgr = protocol->connectionManager().data();
@@ -81,10 +82,12 @@ AstralAccount::~AstralAccount()
 
 void AstralAccount::setStatus(Status status)
 {
+	qDebug() << Q_FUNC_INFO << status;
 }
 
 ChatUnit *AstralAccount::getUnitForSession(ChatUnit *unit)
 {
+	qDebug() << Q_FUNC_INFO;
 	if(AstralContact *contact = qobject_cast<AstralContact *>(unit))
 	{
 		Q_UNUSED(contact);

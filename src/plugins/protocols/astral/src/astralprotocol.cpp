@@ -29,17 +29,19 @@ struct AstralProtocolPrivate
 	ConnectionManagerPtr conn_mgr;
 	AccountManagerPtr acc_mgr;
 	QHash<QString, QPointer<AstralAccount> > accounts;
+	QMetaObject* meta;
 };
 
 AstralProtocol::AstralProtocol(ConnectionManagerPtr manager, QMetaObject *meta) : p(new AstralProtocolPrivate)
 {
 	p->conn_mgr = manager;
-	QObject::d_ptr->metaObject = meta;
+	p->meta = meta;
+	//QObject::d_ptr->metaObject = reinterpret_cast<QDynamicMetaObjectData*>(meta);
 }
 
 AstralProtocol::~AstralProtocol()
 {
-	QObject::d_ptr->metaObject = 0;
+	//QObject::d_ptr->metaObject = 0;
 }
 
 QList<qutim_sdk_0_3::Account *> AstralProtocol::accounts() const
@@ -73,38 +75,92 @@ AccountManagerPtr AstralProtocol::accountManager()
 	return p->acc_mgr;
 }
 
+const QMetaObject *AstralProtocol::metaObject() const
+{
+	return p->meta;
+}
+
 void AstralProtocol::loadAccounts()
 {
 	QStringList accounts = config("general").value("accounts", QStringList());
-	foreach(const QString &id, accounts)
-		p->accounts.insert(id, new AstralAccount(this, id));
+	foreach(const QString &id, accounts) {
+		qDebug() << "accountCreated!" << id;
+		auto a = new AstralAccount(this, id);
+		p->accounts.insert(id, a);
+		emit accountCreated(a);
+		//connect(a, SIGNAL(destroyed(QObject*)), this, SLOT(onAccountRemoved(QObject*)));
+	}
 }
 
+// from Qt5's qmetaobjectbuilder.cpp
+static void writeString(char *out, int i, const QByteArray &str,
+		const int offsetOfStringdataMember, int &stringdataOffset)
+{
+	int size = str.size();
+	qptrdiff offset = offsetOfStringdataMember + stringdataOffset
+		- i * sizeof(QByteArrayData);
+	const QByteArrayData data =
+		Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(size, offset);
+	memcpy(out + i * sizeof(QByteArrayData), &data, sizeof(QByteArrayData));
+	memcpy(out + offsetOfStringdataMember + stringdataOffset, str.constData(), size);
+	out[offsetOfStringdataMember + stringdataOffset + size] = '\0';
+	stringdataOffset += size + 1;
+}
+
+/**
+ * Magic happens here.
+ * \see QuetzalMetaObject::QuetzalMetaObject(PurplePlugin *protocol)
+ */
 AstralMetaObject::AstralMetaObject(ConnectionManagerPtr manager, ProtocolInfo *protocol)
 {
-	QByteArray stringdata_b = "astral::";
-	stringdata_b += manager->name().toLatin1();
-	stringdata_b += "::";
-	stringdata_b += protocol->name().replace('-', '_').toLatin1();
-	stringdata_b += '\0';
-	int value = stringdata_b.size();
-	stringdata_b += protocol->name().toLatin1();
-	stringdata_b += '\0';
-	int key = stringdata_b.size();
-	stringdata_b.append("Protocol\0", 9);
-
-	char *stringdata = (char*)qMalloc(stringdata_b.size() + 1);
 	uint *data = (uint*) calloc(17, sizeof(uint));
-	qMemCopy(stringdata, stringdata_b.constData(), stringdata_b.size() + 1);
-	data[0] = 4;
-	data[2] = 1;
-	data[3] = 14;
-	data[14] = key;
-	data[15] = value;
+
+	data[ 0] = 7;  // revision
+	data[ 1] = 0;  // classname (the first string)
+
+	data[ 2] = 1;  // classinfo count
+	data[ 3] = 14; // classinfo data
+
+	data[ 4] = 0;  // methods count
+	data[ 5] = 0;  // methods data
+
+	data[ 6] = 0;  // properties count
+	data[ 7] = 0;  // properties data
+
+	data[ 8] = 0;  // enums/sets count
+	data[ 9] = 0;  // enums/sets data
+
+	data[10] = 0;  // constructors count
+	data[11] = 0;  // constructors data
+
+	data[12] = 0;  // flags
+
+	data[13] = 0;  // signal count
+
+	QByteArray className("astral::");
+	className += manager->name().toLatin1();
+	className += "::";
+	className += protocol->name().replace('-', '_').toLatin1();
+	const QByteArray keyStr("Protocol");
+	const QByteArray valueStr(protocol->name().toLatin1());
+
+	// because we have ONE classname, ONE classInfoName and ONE classInfoValue
+	int offsetOfStringdataMember = 3 * sizeof(QByteArrayData);
+	int stringdataOffset = 0;
+	char* stringData = new char[offsetOfStringdataMember + className.size() + 1 + keyStr.size() + 1 + valueStr.size() + 1];
+	writeString(stringData, /*index*/0, className, offsetOfStringdataMember, stringdataOffset);
+	writeString(stringData, 1, keyStr, offsetOfStringdataMember, stringdataOffset);
+	writeString(stringData, 2, valueStr, offsetOfStringdataMember, stringdataOffset);
+
+	data[14] = 1; // because 0 is ClassName
+	data[15] = 2; //
+
+	data[16] = 0; // eods
 
 	d.superdata = &AstralProtocol::staticMetaObject;
-	d.stringdata = stringdata;
+	d.stringdata = reinterpret_cast<const QByteArrayData*>(stringData);
 	d.data = data;
+	d.relatedMetaObjects = 0;
 	d.extradata = 0;
 }
 

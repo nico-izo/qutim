@@ -55,28 +55,28 @@ void AstralPlugin::init()
 			QT_TRANSLATE_NOOP("Plugin", "Protocol support by Telepathy"),
 			PLUGIN_VERSION(0, 0, 1, 0));
 	addAuthor(QLatin1String("euroelessar"));
-//	qDebug() << "asking for accounts";
-//	AccountManagerPtr accManager = AccountManager::create();
-//	qDebug() << accManager->allAccountPaths();
-//	qDebug() << accManager->supportedAccountProperties();
-//	foreach(Tp::AccountPtr account, accManager->allAccounts())
-//	{
-//		qDebug() << account->protocol() << account->displayName() << account->cmName() << account->parameters();
-//	}
-//	qDebug() << "after asking";
-//	foreach (ConnectionManagerPtr connManager, listConnectionManagers()) {
-//		QEventLoop *loop = new QEventLoop;
-//		connect(connManager->becomeReady(), SIGNAL(finished(Tp::PendingOperation *)), loop, SLOT(quit()));
-//		loop->exec();
-//		delete loop;
-//		qDebug() << connManager->busName();
-//		foreach (ProtocolInfo *protocol, connManager->protocols()) {
-//			qDebug() << "astral" << protocol->cmName() << protocol->name();
-//			addExtension(protocol->name() + " (" + protocol->cmName() + ")",
-//						 QT_TRANSLATE_NOOP("Plugin", "Plugin support by Telepathy"),
-//						 new AstralProtocolGenerator(connManager, protocol));
-//		}
-//	}
+	qDebug() << "asking for accounts";
+	AccountManagerPtr accManager = AccountManager::create();
+	//qDebug() << accManager->allAccountPaths();
+	qDebug() << accManager->supportedAccountProperties();
+	foreach(Tp::AccountPtr account, accManager->allAccounts())
+	{
+		qDebug() << "astral!"/* << account->protocol()*/ << account->displayName() << account->cmName() << account->parameters();
+	}
+	qDebug() << "after asking";
+	foreach (ConnectionManagerPtr connManager, listConnectionManagers()) {
+		QEventLoop *loop = new QEventLoop;
+		connect(connManager->becomeReady(), SIGNAL(finished(Tp::PendingOperation *)), loop, SLOT(quit()));
+		loop->exec();
+		delete loop;
+		qDebug() << connManager->busName();
+		foreach (ProtocolInfo protocol, connManager->protocols()) {
+			qDebug() << "astral" << protocol.cmName() << protocol.name();
+			addExtension(protocol.name() + " (" + protocol.cmName() + ")",
+						 QT_TRANSLATE_NOOP("Plugin", "Plugin support by Telepathy"),
+						 new AstralProtocolGenerator(connManager, &protocol));
+		}
+	}
 }
 
 bool AstralPlugin::load()

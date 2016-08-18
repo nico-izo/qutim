@@ -33,6 +33,8 @@ using namespace qutim_sdk_0_3;
 class AstralPlugin : public Plugin
 {
 	Q_OBJECT
+	Q_CLASSINFO("DebugName", "Astral")
+	Q_PLUGIN_METADATA(IID "org.qutim.Plugin")
 public:
 	AstralPlugin();
 	virtual void init();
